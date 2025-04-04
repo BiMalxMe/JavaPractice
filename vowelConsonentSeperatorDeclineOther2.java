@@ -48,11 +48,16 @@ public class vowelConsonentSeperatorDeclineOther2 {
                 }
 
                 if (!isVowel) {
+                    int interval=0;
                     //char ko harek lai iterate garne
                     for(char ch:alphabet){
                         if(ch==str[j]){
-                            fo.write((str[j]));
+                            interval = interval + 1;
                         }
+                    }
+                        if(interval > 0) {
+                            fo.write((str[j]));
+
                     }
 
                 }
