@@ -9,11 +9,18 @@ public class JFrameBorderLayout extends JFrame {
         setSize(300, 200);
 
 
-        add(new JButton("North"), BorderLayout.NORTH);
-        add(new JButton("South"), BorderLayout.SOUTH);
-        add(new JButton("East"), BorderLayout.EAST);
-        add(new JButton("West"), BorderLayout.WEST);
-        add(new JButton("Center"), BorderLayout.CENTER);
+
+        JButton btnNorth = new JButton("North");
+        JButton btnSouth = new JButton("South");
+        JButton btnEast = new JButton("East");
+        JButton btnWest = new JButton("West");
+        JButton btnCenter = new JButton("Center");
+
+        add(btnNorth, BorderLayout.NORTH);
+        add(btnSouth, BorderLayout.SOUTH);
+        add(btnEast, BorderLayout.EAST);
+        add(btnWest, BorderLayout.WEST);
+        add(btnCenter, BorderLayout.CENTER);
 
         setVisible(true);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
