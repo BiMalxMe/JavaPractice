@@ -9,6 +9,12 @@ public class JFramJdbcProject extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         JPanel panel = new JPanel(new GridLayout(7, 2, 10, 10));
+        //adding the custom colors
+        Color customColor = new Color(230, 230, 250);
+        panel.setBackground(customColor);
+
+
+
 
         panel.add(new JLabel("Name"));
         JTextField nameField = new JTextField();
@@ -43,10 +49,26 @@ public class JFramJdbcProject extends JFrame {
 
         panel.add(new JLabel("")); // Spacer
         JButton submitButton = new JButton("Submit");
-        System.out.println("Submit btn clicked");
         panel.add(submitButton);
 
+        //adding the getdata btn to get the datas from the databaase
+
+        JButton getData = new JButton("Get Datas");
+        panel.add(getData);
+
+        getData.addActionListener(e -> {
+            //after clicking just disabling it
+            getData.setEnabled(false);
+             fetchDB();
+             getData.setEnabled(true);
+        });
+
+
         submitButton.addActionListener(e -> {
+            //making the submit btn unable to work until the response comes from the db
+            submitButton.setEnabled(false);
+            System.out.println("Submit buttin clicked");
+            System.out.flush();
             String name = nameField.getText().trim();
             String email = emailField.getText().trim();
             String phone = phoneField.getText().trim();
@@ -69,22 +91,23 @@ public class JFramJdbcProject extends JFrame {
 
             String subject = (String) subjectComboBox.getSelectedItem();
 
-            String message = String.format("Name: %s\nEmail: %s\nSubject: %s\nGender: %s\nPhone: %s",
+            String message = String.format("Name %s\nEmail %s\nSubject %s\nGender %s\nPhone %s",
                     name, email, subject, gender, phone);
             JOptionPane.showMessageDialog(this, message, "Form Data", JOptionPane.INFORMATION_MESSAGE);
-            System.out.println(message);
 
-            // Save to PostgreSQL DB
-            saveToDatabase(name, email, subject, gender, phone);
+            // Only create table (no data insert)
+            System.out.println("Initiating the database connectivitu Sending Datas");
+            saveToDatabase(name,email,subject,gender,phone);
+
+            //after response from dn comes reenable submitbtn
+            submitButton.setEnabled(true);
         });
 
         add(panel);
         setSize(400, 300);
         setVisible(true);
     }
-
-    public void saveToDatabase(String name, String email, String subject, String gender, String phone) {
-        System.out.println("HI from the db fn");
+    public void saveToDatabase(String name,String email,String subject,String gender,String phone) {
         Connection con = null;
         Statement st = null;
 
@@ -92,13 +115,13 @@ public class JFramJdbcProject extends JFrame {
             // Load PostgreSQL JDBC driver
             Class.forName("org.postgresql.Driver");
 
-            // NeonDB PostgreSQL connection string
-            String url = "jdbc:postgresql://ep-quiet-shadow-a4ajj1fn-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require";
-            String user = "neondb_owner";
-            String password = "npg_nvDduab1Oeo9";
+            // Connect to NeonDB
+            con = DriverManager.getConnection(
+                    "jdbc:postgresql://ep-quiet-shadow-a4ajj1fn-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require",
+                    "neondb_owner",
+                    "npg_nvDduab1Oeo9"
+            );
 
-
-            con = DriverManager.getConnection(url, user, password);
             st = con.createStatement();
 
             // Create table if not exists
@@ -109,36 +132,88 @@ public class JFramJdbcProject extends JFrame {
                     "subject VARCHAR(50), " +
                     "gender VARCHAR(10), " +
                     "phone VARCHAR(20))";
+
             int val = st.executeUpdate(createTableSQL);
-            System.out.println("CREATE TABLE result: " + val); // likely prints 0
+            System.out.println(val + " Tables Created or Already Exist.");
+            String insertQuery ="INSERT INTO student (name, email,subject,gender,phone) VALUES (?,?,?,?,?)";
+           //helps tp put ddata to prevent from the sql injections
+            PreparedStatement ps  = con.prepareStatement(insertQuery);
+            //based on the args placement inserting the vals
+            ps.setString(1,name);
+            ps.setString(2,email);
+            ps.setString(3,subject);
+            ps.setString(4,gender);
+            ps.setString(5,phone);
+            int retVal = ps.executeUpdate();
 
+            System.out.println( retVal + "Inserted");
 
-            // Insert data
-            String query = "INSERT INTO student(name, email, subject, gender, phone) VALUES (?, ?, ?, ?, ?)";
-            try (PreparedStatement ps = con.prepareStatement(query)) {
-                ps.setString(1, name);
-                ps.setString(2, email);
-                ps.setString(3, subject);
-                ps.setString(4, gender);
-                ps.setString(5, phone);
-
-                int rowsInserted = ps.executeUpdate();
-                if (rowsInserted > 0) {
-                    JOptionPane.showMessageDialog(this, "Data saved to NeonDB!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                }
+            //make a good errir handling of data retrieval and insertion
+            if(retVal == 1) {
+                JOptionPane.showMessageDialog(this, "Data inserted successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+            }else{
+                JOptionPane.showMessageDialog(this, "Error inserting data!", "Error", JOptionPane.ERROR_MESSAGE);
             }
 
-        } catch (SQLException | ClassNotFoundException e) {
-            JOptionPane.showMessageDialog(this, "Database Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-        } finally {
-            try {
-                if (st != null) st.close();
-                if (con != null) con.close();
-            } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Error closing resources: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            }
+
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
         }
+
     }
+
+    public void fetchDB(){
+
+        //connecting to db
+        Connection con = null;
+        Statement st = null;
+
+        try {
+            // Load PostgreSQL JDBC driver
+            Class.forName("org.postgresql.Driver");
+
+            // Connect to NeonDB
+            con = DriverManager.getConnection(
+                    "jdbc:postgresql://ep-quiet-shadow-a4ajj1fn-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require",
+                    "neondb_owner",
+                    "npg_nvDduab1Oeo9"
+            );
+
+            st = con.createStatement();
+            String selectQuery = "SELECT * FROM student";
+
+            // Create a Statement object to execute the SQL query
+            st = con.createStatement();
+
+            // Execute the query and fetch rows
+            ResultSet rs = st.executeQuery(selectQuery);
+            StringBuilder finaldata =new StringBuilder() ;
+            // Iterate through the result set and print each row's data
+            while (rs.next()) {
+                // Retrieve data from each column using column names (or column index)
+                int id = rs.getInt("id");
+                String name = rs.getString("name");
+                String email = rs.getString("email");
+                String subject = rs.getString("subject");
+                String gender = rs.getString("gender");
+                String phone = rs.getString("phone");
+
+                // Print the student record
+                String formattedString = String.format("\n id : %s\n Name: %s\nEmail: %s\nSubject: %s\nGender: %s\nPhone: %s\n",id , name, email, subject, gender, phone);
+                    finaldata.append(formattedString);
+            }JTextArea jta = new JTextArea(finaldata.toString(), 20, 40); // limitingn the rows and cols
+            jta.setEditable(false); // prevent editing
+            JScrollPane js = new JScrollPane(jta); // attaching scroll as there can be multiple vals
+
+// Show in dialog
+            JOptionPane.showMessageDialog(this, js, "Data Fetched Successfully!", JOptionPane.INFORMATION_MESSAGE);
+
+
+        }catch (Exception e){
+            System.out.println(e);
+        }
+    };
+
 
     public static void main(String[] args) {
         new JFramJdbcProject();
